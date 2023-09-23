@@ -1639,6 +1639,16 @@ pub struct IsortOptions {
     )]
     pub case_sensitive: Option<bool>,
 
+    /// Sort imports by their string length.
+    #[option(
+        default = r#"false"#,
+        value_type = "bool",
+        example = r#"
+            length-sort = true
+        "#
+    )]
+    pub length_sort: Option<bool>,
+
     /// Force specific imports to the top of their appropriate section.
     #[option(
         default = r#"[]"#,
@@ -1987,6 +1997,7 @@ impl IsortOptions {
             force_single_line: self.force_single_line.unwrap_or(false),
             force_sort_within_sections: self.force_sort_within_sections.unwrap_or(false),
             case_sensitive: self.case_sensitive.unwrap_or(false),
+            length_sort: self.length_sort.unwrap_or(false),
             force_wrap_aliases: self.force_wrap_aliases.unwrap_or(false),
             detect_same_package: self.detect_same_package.unwrap_or(true),
             force_to_top: BTreeSet::from_iter(self.force_to_top.unwrap_or_default()),

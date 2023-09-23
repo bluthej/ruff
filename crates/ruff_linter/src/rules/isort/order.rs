@@ -14,6 +14,7 @@ pub(crate) fn order_imports<'a>(
     block: ImportBlock<'a>,
     order_by_type: bool,
     case_sensitive: bool,
+    length_sort: bool,
     relative_imports_order: RelativeImportsOrder,
     classes: &'a BTreeSet<String>,
     constants: &'a BTreeSet<String>,
@@ -28,7 +29,7 @@ pub(crate) fn order_imports<'a>(
             .import
             .into_iter()
             .sorted_by(|(alias1, _), (alias2, _)| {
-                cmp_modules(alias1, alias2, force_to_top, case_sensitive)
+                cmp_modules(alias1, alias2, force_to_top, case_sensitive, length_sort)
             }),
     );
 
@@ -75,6 +76,7 @@ pub(crate) fn order_imports<'a>(
                                     variables,
                                     force_to_top,
                                     case_sensitive,
+                                    length_sort,
                                 )
                             })
                             .collect::<Vec<(AliasData, CommentSet)>>(),
@@ -103,6 +105,7 @@ pub(crate) fn order_imports<'a>(
                             variables,
                             force_to_top,
                             case_sensitive,
+                            length_sort,
                         ),
                     })
                 },

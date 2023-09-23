@@ -57,8 +57,16 @@ pub(crate) fn cmp_modules(
     alias2: &AliasData,
     force_to_top: &BTreeSet<String>,
     case_sensitive: bool,
+    length_sort: bool,
 ) -> Ordering {
     cmp_force_to_top(alias1.name, alias2.name, force_to_top)
+        .then_with(|| {
+            if length_sort {
+                alias1.name.len().cmp(&alias2.name.len())
+            } else {
+                Ordering::Equal
+            }
+        })
         .then_with(|| {
             if case_sensitive {
                 natord::compare(alias1.name, alias2.name)
@@ -86,6 +94,7 @@ pub(crate) fn cmp_members(
     variables: &BTreeSet<String>,
     force_to_top: &BTreeSet<String>,
     case_sensitive: bool,
+    length_sort: bool,
 ) -> Ordering {
     match (alias1.name == "*", alias2.name == "*") {
         (true, false) => Ordering::Less,
@@ -94,9 +103,11 @@ pub(crate) fn cmp_members(
             if order_by_type {
                 prefix(alias1.name, classes, constants, variables)
                     .cmp(&prefix(alias2.name, classes, constants, variables))
-                    .then_with(|| cmp_modules(alias1, alias2, force_to_top, case_sensitive))
+                    .then_with(|| {
+                        cmp_modules(alias1, alias2, force_to_top, case_sensitive, length_sort)
+                    })
             } else {
-                cmp_modules(alias1, alias2, force_to_top, case_sensitive)
+                cmp_modules(alias1, alias2, force_to_top, case_sensitive, length_sort)
             }
         }
     }
@@ -177,10 +188,11 @@ pub(crate) fn cmp_either_import(
     relative_imports_order: RelativeImportsOrder,
     force_to_top: &BTreeSet<String>,
     case_sensitive: bool,
+    length_sort: bool,
 ) -> Ordering {
     match (a, b) {
         (Import((alias1, _)), Import((alias2, _))) => {
-            cmp_modules(alias1, alias2, force_to_top, case_sensitive)
+            cmp_modules(alias1, alias2, force_to_top, case_sensitive, length_sort)
         }
         (ImportFrom((import_from, ..)), Import((alias, _))) => {
             cmp_import_import_from(alias, import_from, force_to_top, case_sensitive).reverse()

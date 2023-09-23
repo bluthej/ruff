@@ -78,6 +78,7 @@ pub(crate) fn format_imports(
     force_single_line: bool,
     force_sort_within_sections: bool,
     case_sensitive: bool,
+    length_sort: bool,
     force_wrap_aliases: bool,
     force_to_top: &BTreeSet<String>,
     known_modules: &KnownModules,
@@ -126,6 +127,7 @@ pub(crate) fn format_imports(
             package,
             force_sort_within_sections,
             case_sensitive,
+            length_sort,
             force_wrap_aliases,
             force_to_top,
             known_modules,
@@ -185,6 +187,7 @@ fn format_import_block(
     package: Option<&Path>,
     force_sort_within_sections: bool,
     case_sensitive: bool,
+    length_sort: bool,
     force_wrap_aliases: bool,
     force_to_top: &BTreeSet<String>,
     known_modules: &KnownModules,
@@ -229,6 +232,7 @@ fn format_import_block(
             import_block,
             order_by_type,
             case_sensitive,
+            length_sort,
             relative_imports_order,
             classes,
             constants,
@@ -251,6 +255,7 @@ fn format_import_block(
                         relative_imports_order,
                         force_to_top,
                         case_sensitive,
+                        length_sort,
                     )
                 });
             };
