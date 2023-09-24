@@ -137,6 +137,7 @@ pub(crate) fn cmp_import_from(
     relative_imports_order: RelativeImportsOrder,
     force_to_top: &BTreeSet<String>,
     case_sensitive: bool,
+    length_sort: bool,
 ) -> Ordering {
     cmp_levels(
         import_from1.level,
@@ -149,6 +150,16 @@ pub(crate) fn cmp_import_from(
             &import_from2.module_name(),
             force_to_top,
         )
+    })
+    .then_with(|| {
+        if length_sort {
+            import_from1
+                .module_name()
+                .len()
+                .cmp(&import_from2.module_name().len())
+        } else {
+            Ordering::Equal
+        }
     })
     .then_with(|| match (&import_from1.module, import_from2.module) {
         (None, None) => Ordering::Equal,
@@ -170,14 +181,23 @@ fn cmp_import_import_from(
     import_from: &ImportFromData,
     force_to_top: &BTreeSet<String>,
     case_sensitive: bool,
+    length_sort: bool,
 ) -> Ordering {
-    cmp_force_to_top(import.name, &import_from.module_name(), force_to_top).then_with(|| {
-        if case_sensitive {
-            natord::compare(import.name, import_from.module.unwrap_or_default())
-        } else {
-            natord::compare_ignore_case(import.name, import_from.module.unwrap_or_default())
-        }
-    })
+    cmp_force_to_top(import.name, &import_from.module_name(), force_to_top)
+        .then_with(|| {
+            if length_sort {
+                import.name.len().cmp(&import_from.module_name().len())
+            } else {
+                Ordering::Equal
+            }
+        })
+        .then_with(|| {
+            if case_sensitive {
+                natord::compare(import.name, import_from.module.unwrap_or_default())
+            } else {
+                natord::compare_ignore_case(import.name, import_from.module.unwrap_or_default())
+            }
+        })
 }
 
 /// Compare two [`EitherImport`] enums which may be [`Import`] or [`ImportFrom`]
@@ -194,18 +214,28 @@ pub(crate) fn cmp_either_import(
         (Import((alias1, _)), Import((alias2, _))) => {
             cmp_modules(alias1, alias2, force_to_top, case_sensitive, length_sort)
         }
-        (ImportFrom((import_from, ..)), Import((alias, _))) => {
-            cmp_import_import_from(alias, import_from, force_to_top, case_sensitive).reverse()
-        }
-        (Import((alias, _)), ImportFrom((import_from, ..))) => {
-            cmp_import_import_from(alias, import_from, force_to_top, case_sensitive)
-        }
+        (ImportFrom((import_from, ..)), Import((alias, _))) => cmp_import_import_from(
+            alias,
+            import_from,
+            force_to_top,
+            case_sensitive,
+            length_sort,
+        )
+        .reverse(),
+        (Import((alias, _)), ImportFrom((import_from, ..))) => cmp_import_import_from(
+            alias,
+            import_from,
+            force_to_top,
+            case_sensitive,
+            length_sort,
+        ),
         (ImportFrom((import_from1, ..)), ImportFrom((import_from2, ..))) => cmp_import_from(
             import_from1,
             import_from2,
             relative_imports_order,
             force_to_top,
             case_sensitive,
+            length_sort,
         ),
     }
 }

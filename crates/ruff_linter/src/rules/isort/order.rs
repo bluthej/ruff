@@ -91,6 +91,7 @@ pub(crate) fn order_imports<'a>(
                         relative_imports_order,
                         force_to_top,
                         case_sensitive,
+                        length_sort,
                     )
                     .then_with(|| match (aliases1.first(), aliases2.first()) {
                         (None, None) => Ordering::Equal,
