@@ -1836,6 +1836,16 @@ pub struct IsortOptions {
     )]
     pub detect_same_package: Option<bool>,
 
+    /// Sort imports by their string length.
+    #[option(
+        default = r#"false"#,
+        value_type = "bool",
+        example = r#"
+            length-sort = true
+        "#
+    )]
+    pub length_sort: Option<bool>,
+
     // Tables are required to go last.
     /// A list of mappings from section names to modules.
     /// By default custom sections are output last, but this can be overridden with `section-order`.
@@ -1989,6 +1999,7 @@ impl IsortOptions {
             case_sensitive: self.case_sensitive.unwrap_or(false),
             force_wrap_aliases: self.force_wrap_aliases.unwrap_or(false),
             detect_same_package: self.detect_same_package.unwrap_or(true),
+            length_sort: self.length_sort.unwrap_or(false),
             force_to_top: BTreeSet::from_iter(self.force_to_top.unwrap_or_default()),
             known_modules: isort::categorize::KnownModules::new(
                 known_first_party,

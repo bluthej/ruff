@@ -48,6 +48,13 @@ fn cmp_force_to_top(name1: &str, name2: &str, force_to_top: &BTreeSet<String>) -
 pub(crate) fn cmp_modules(alias1: &AliasData, alias2: &AliasData, settings: &Settings) -> Ordering {
     cmp_force_to_top(alias1.name, alias2.name, &settings.force_to_top)
         .then_with(|| {
+            if settings.length_sort {
+                alias1.name.len().cmp(&alias2.name.len())
+            } else {
+                Ordering::Equal
+            }
+        })
+        .then_with(|| {
             if settings.case_sensitive {
                 natord::compare(alias1.name, alias2.name)
             } else {
@@ -115,6 +122,16 @@ pub(crate) fn cmp_import_from(
             &settings.force_to_top,
         )
     })
+    .then_with(|| {
+        if settings.length_sort {
+            import_from1
+                .module_name()
+                .len()
+                .cmp(&import_from2.module_name().len())
+        } else {
+            Ordering::Equal
+        }
+    })
     .then_with(|| match (&import_from1.module, import_from2.module) {
         (None, None) => Ordering::Equal,
         (None, Some(_)) => Ordering::Less,
@@ -140,6 +157,13 @@ fn cmp_import_import_from(
         &import_from.module_name(),
         &settings.force_to_top,
     )
+    .then_with(|| {
+        if settings.length_sort {
+            import.name.len().cmp(&import_from.module_name().len())
+        } else {
+            Ordering::Equal
+        }
+    })
     .then_with(|| {
         if settings.case_sensitive {
             natord::compare(import.name, import_from.module.unwrap_or_default())
