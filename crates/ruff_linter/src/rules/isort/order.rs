@@ -1,4 +1,3 @@
-use crate::rules::isort::sorting::ImportStyle;
 use itertools::Itertools;
 
 use super::settings::Settings;
@@ -56,47 +55,13 @@ pub(crate) fn order_imports<'a>(
         straight_imports
             .map(Import)
             .chain(from_imports.map(ImportFrom))
-            .sorted_by_cached_key(|import| match import {
-                Import((alias, _)) => ModuleKey::from_module(
-                    Some(alias.name),
-                    alias.asname,
-                    None,
-                    None,
-                    ImportStyle::Straight,
-                    settings,
-                ),
-                ImportFrom((import_from, _, _, aliases)) => ModuleKey::from_module(
-                    import_from.module,
-                    None,
-                    import_from.level,
-                    aliases.first().map(|(alias, _)| (alias.name, alias.asname)),
-                    ImportStyle::From,
-                    settings,
-                ),
-            })
+            .sorted_by_cached_key(|import| ModuleKey::from_either_import(import, settings))
             .collect()
     } else {
-        let ordered_straight_imports = straight_imports.sorted_by_cached_key(|(alias, _)| {
-            ModuleKey::from_module(
-                Some(alias.name),
-                alias.asname,
-                None,
-                None,
-                ImportStyle::Straight,
-                settings,
-            )
-        });
-        let ordered_from_imports =
-            from_imports.sorted_by_cached_key(|(import_from, _, _, aliases)| {
-                ModuleKey::from_module(
-                    import_from.module,
-                    None,
-                    import_from.level,
-                    aliases.first().map(|(alias, _)| (alias.name, alias.asname)),
-                    ImportStyle::From,
-                    settings,
-                )
-            });
+        let ordered_straight_imports = straight_imports
+            .sorted_by_cached_key(|import| ModuleKey::from_straight_import(import, settings));
+        let ordered_from_imports = from_imports
+            .sorted_by_cached_key(|import| ModuleKey::from_from_import(import, settings));
         if settings.from_first {
             ordered_from_imports
                 .into_iter()

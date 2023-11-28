@@ -7,7 +7,10 @@ use unicode_width::UnicodeWidthStr;
 
 use ruff_python_stdlib::str;
 
-use super::settings::{RelativeImportsOrder, Settings};
+use super::{
+    settings::{RelativeImportsOrder, Settings},
+    types::{EitherImport, Import, ImportFrom},
+};
 
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Copy, Clone)]
 pub(crate) enum MemberType {
@@ -71,14 +74,6 @@ pub(crate) enum Distance {
     Furthest(Reverse<u32>),
 }
 
-#[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq)]
-pub(crate) enum ImportStyle {
-    // Ex) `import foo`
-    Straight,
-    // Ex) `from foo import bar`
-    From,
-}
-
 /// A comparable key to capture the desired sorting order for an imported module (e.g.,
 /// `foo` in `from foo import bar`).
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
@@ -93,22 +88,52 @@ pub(crate) struct ModuleKey<'a> {
 }
 
 impl<'a> ModuleKey<'a> {
-    pub(crate) fn from_module(
-        name: Option<&'a str>,
-        asname: Option<&'a str>,
-        level: Option<u32>,
-        first_alias: Option<(&'a str, Option<&'a str>)>,
-        style: ImportStyle,
-        settings: &Settings,
-    ) -> Self {
-        let level = level.unwrap_or_default();
+    pub(crate) fn from_straight_import(import: &Import<'a>, settings: &Settings) -> Self {
+        let (alias, _) = import;
+        let name = alias.name;
+        let asname = alias.asname;
+
+        let force_to_top = !settings.force_to_top.contains(name); // `false` < `true` so we get forced to top first
+
+        let maybe_length =
+            (settings.length_sort || settings.length_sort_straight).then_some(name.width());
+
+        let level = 0;
+        let distance = match settings.relative_imports_order {
+            RelativeImportsOrder::ClosestToFurthest => Distance::Nearest(level),
+            RelativeImportsOrder::FurthestToClosest => Distance::Furthest(Reverse(level)),
+        };
+
+        let maybe_lowercase_name =
+            (!settings.case_sensitive).then_some(NatOrdStr(maybe_lowercase(name)));
+
+        let module_name = Some(NatOrdStr::from(name));
+
+        let asname = asname.map(NatOrdStr::from);
+
+        Self {
+            force_to_top,
+            maybe_length,
+            distance,
+            maybe_lowercase_name,
+            module_name,
+            first_alias: None,
+            asname,
+        }
+    }
+
+    pub(crate) fn from_from_import(import: &ImportFrom<'a>, settings: &Settings) -> Self {
+        let (import_from, _, _, aliases) = import;
+        let name = import_from.module;
 
         let force_to_top = !name
             .map(|name| settings.force_to_top.contains(name))
             .unwrap_or_default(); // `false` < `true` so we get forced to top first
 
-        let maybe_length = (settings.length_sort
-            || (settings.length_sort_straight && style == ImportStyle::Straight))
+        let level = import_from.level.unwrap_or_default();
+
+        let maybe_length = settings
+            .length_sort
             .then_some(name.map(str::width).unwrap_or_default() + level as usize);
 
         let distance = match settings.relative_imports_order {
@@ -122,10 +147,9 @@ impl<'a> ModuleKey<'a> {
 
         let module_name = name.map(NatOrdStr::from);
 
-        let asname = asname.map(NatOrdStr::from);
-
-        let first_alias =
-            first_alias.map(|(name, asname)| MemberKey::from_member(name, asname, settings));
+        let first_alias = aliases
+            .first()
+            .map(|(alias, _)| MemberKey::from_member(alias.name, alias.asname, settings));
 
         Self {
             force_to_top,
@@ -134,7 +158,14 @@ impl<'a> ModuleKey<'a> {
             maybe_lowercase_name,
             module_name,
             first_alias,
-            asname,
+            asname: None,
+        }
+    }
+
+    pub(crate) fn from_either_import(import: &EitherImport<'a>, settings: &Settings) -> Self {
+        match import {
+            EitherImport::Import(import) => Self::from_straight_import(import, settings),
+            EitherImport::ImportFrom(import) => Self::from_from_import(import, settings),
         }
     }
 }

@@ -80,9 +80,9 @@ pub(crate) struct ImportBlock<'a> {
 
 type AliasDataWithComments<'a> = (AliasData<'a>, CommentSet<'a>);
 
-type Import<'a> = AliasDataWithComments<'a>;
+pub(crate) type Import<'a> = AliasDataWithComments<'a>;
 
-type ImportFrom<'a> = (
+pub(crate) type ImportFrom<'a> = (
     ImportFromData<'a>,
     CommentSet<'a>,
     TrailingComma,
